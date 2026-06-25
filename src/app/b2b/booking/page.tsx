@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from '../../../components/ui/Badge';
 import { Drawer } from '../../../components/ui/Tabs';
 import { Input, Select } from '../../../components/ui/Input';
@@ -33,6 +33,24 @@ export default function BookingCalendar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ court: string; time: string } | null>(null);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
+
+  // Floating Tooltip States
+  const [hoveredBooking, setHoveredBooking] = useState<any | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const handleMouseEnter = (e: React.MouseEvent, booking: any) => {
+    if (!booking) return;
+    setHoveredBooking(booking);
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredBooking(null);
+  };
 
   const handleSlotClick = (courtName: string, time: string, status: string) => {
     if (status === 'available') {
@@ -142,8 +160,10 @@ export default function BookingCalendar() {
                           <div
                             key={ti}
                             onClick={() => handleSlotClick(court.name, t, status)}
+                            onMouseEnter={(e) => handleMouseEnter(e, booking)}
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={handleMouseLeave}
                             className={`flex-1 h-12 rounded border border-slate-950/20 flex items-center justify-center transition-custom ${slotStyles[status] || slotStyles.available}`}
-                            title={booking ? `${booking.customerName} (${booking.startTime}-${booking.endTime})` : `${court.name} ${t} - Trống`}
                           >
                             {booking && ti === timeSlots.indexOf(booking.startTime) && (
                               <span className="text-[9px] font-bold text-white truncate px-1">
@@ -260,6 +280,59 @@ export default function BookingCalendar() {
           </div>
         </div>
       </Drawer>
+
+      {/* Floating Tooltip */}
+      {hoveredBooking && (
+        <div 
+          className="fixed z-50 pointer-events-none p-3.5 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl backdrop-blur-md max-w-xs space-y-2 text-xs transition-opacity duration-200 font-space"
+          style={{ 
+            left: tooltipPos.x + 15, 
+            top: tooltipPos.y + 15,
+            borderColor: 
+              hoveredBooking.status === 'booked-online' ? 'rgba(56, 189, 248, 0.4)' :
+              hoveredBooking.status === 'booked-offline' ? 'rgba(163, 230, 53, 0.4)' :
+              hoveredBooking.status === 'tournament' ? 'rgba(139, 92, 246, 0.4)' : 'rgba(239, 68, 68, 0.4)'
+          }}
+        >
+          <div className="flex justify-between items-center gap-4">
+            <span className="font-bold text-white tracking-tight block">
+              {hoveredBooking.status === 'maintenance' ? 'LỊCH BẢO TRÌ' : hoveredBooking.customerName}
+            </span>
+            <Badge 
+              variant={
+                hoveredBooking.status === 'booked-online' ? 'active' : 
+                hoveredBooking.status === 'booked-offline' ? 'info' : 
+                hoveredBooking.status === 'tournament' ? 'premium' : 'inactive'
+              }
+              className="text-[8px] uppercase tracking-wider px-1.5 py-0.5"
+            >
+              {
+                hoveredBooking.status === 'booked-online' ? 'Online' : 
+                hoveredBooking.status === 'booked-offline' ? 'Walk-in' : 
+                hoveredBooking.status === 'tournament' ? 'Giải đấu' : 'Bảo trì'
+              }
+            </Badge>
+          </div>
+
+          {hoveredBooking.status !== 'maintenance' ? (
+            <div className="space-y-1 text-[10px] text-slate-400 font-medium">
+              <p>Mã: <span className="font-mono text-slate-200 font-bold">{hoveredBooking.id}</span></p>
+              <p>Khung giờ: <span className="text-white font-bold">{hoveredBooking.startTime} - {hoveredBooking.endTime}</span></p>
+              <p>Số điện thoại: <span className="text-slate-300 font-bold">{hoveredBooking.customerPhone || '0987 *** 231'}</span></p>
+              <p>Loại khách: <span className="text-slate-300 font-bold capitalize">{hoveredBooking.type}</span></p>
+              <div className="border-t border-slate-900/60 pt-1.5 mt-1.5 flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-bold">Thực thu:</span>
+                <span className="text-[#38BDF8] font-black">{hoveredBooking.amount}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1 text-[10px] text-slate-400 font-medium">
+              <p>Khung giờ: <span className="text-white font-bold">{hoveredBooking.startTime} - {hoveredBooking.endTime}</span></p>
+              <p>Lý do: <span className="text-red-400 font-bold">{hoveredBooking.customerName}</span></p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { DataTable } from '../../../components/ui/DataTable';
 import { SportIcon } from '../../../components/shared/SportIcon';
 import { Modal, Toggle } from '../../../components/ui/Tabs';
+import { Input } from '../../../components/ui/Input';
 import { 
   MapPin, Plus, Settings, Wrench, Eye, Sparkles, 
   TrendingUp, CloudRain, Sun, Activity, Save 
@@ -22,6 +23,21 @@ export default function CourtManagement() {
   const [courts, setCourts] = useState<any[]>([]);
   const [showPricingModal, setShowPricingModal] = useState(false);
   
+  // Interactive Modals States
+  const [activeCourt, setActiveCourt] = useState<any | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
+
+  // Modal Fields States
+  const [configNormalPrice, setConfigNormalPrice] = useState('');
+  const [configPeakPrice, setConfigPeakPrice] = useState('');
+  const [configPeakHours, setConfigPeakHours] = useState('17:00 - 22:00');
+  
+  const [maintenanceReason, setMaintenanceReason] = useState('');
+  const [maintenanceStart, setMaintenanceStart] = useState('');
+  const [maintenanceEnd, setMaintenanceEnd] = useState('');
+
   // AI Dynamic Pricing States
   const [isDynamicPricingActive, setIsDynamicPricingActive] = useState(false);
   const [maxSurge, setMaxSurge] = useState(25); // +25% max surge
@@ -36,7 +52,13 @@ export default function CourtManagement() {
     if (savedSurge) setMaxSurge(JSON.parse(savedSurge));
     if (savedDiscount) setMaxDiscount(JSON.parse(savedDiscount));
 
-    setCourts(initialCourts);
+    const savedCourts = localStorage.getItem('rovi_courts_data');
+    if (savedCourts) {
+      setCourts(JSON.parse(savedCourts));
+    } else {
+      localStorage.setItem('rovi_courts_data', JSON.stringify(initialCourts));
+      setCourts(initialCourts);
+    }
   }, []);
 
   const savePricingConfig = (active: boolean, surge: number, discount: number) => {
@@ -46,6 +68,62 @@ export default function CourtManagement() {
     localStorage.setItem('rovi_dynamic_pricing_active', JSON.stringify(active));
     localStorage.setItem('rovi_dynamic_pricing_surge', JSON.stringify(surge));
     localStorage.setItem('rovi_dynamic_pricing_discount', JSON.stringify(discount));
+  };
+
+  const handleSaveConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeCourt) return;
+    const updated = courts.map(c => {
+      if (c.id === activeCourt.id) {
+        return {
+          ...c,
+          priceNormal: `₫${parseInt(configNormalPrice.replace(/[^0-9]/g, '')).toLocaleString('vi-VN')}`,
+          pricePeak: `₫${parseInt(configPeakPrice.replace(/[^0-9]/g, '')).toLocaleString('vi-VN')}`,
+        };
+      }
+      return c;
+    });
+    setCourts(updated);
+    localStorage.setItem('rovi_courts_data', JSON.stringify(updated));
+    setIsConfigOpen(false);
+  };
+
+  const handleSaveMaintenance = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeCourt) return;
+    const updated = courts.map(c => {
+      if (c.id === activeCourt.id) {
+        return {
+          ...c,
+          status: 'maintenance' as const,
+          utilization: 0,
+        };
+      }
+      return c;
+    });
+    setCourts(updated);
+    localStorage.setItem('rovi_courts_data', JSON.stringify(updated));
+    setIsMaintenanceOpen(false);
+    setMaintenanceReason('');
+  };
+
+  const handleToggleCourtStatus = (courtId: string) => {
+    const updated = courts.map(c => {
+      if (c.id === courtId) {
+        const nextStatus = c.status === 'active' ? 'inactive' as const : 'active' as const;
+        return {
+          ...c,
+          status: nextStatus,
+          utilization: nextStatus === 'inactive' ? 0 : c.utilizationToday || 50,
+        };
+      }
+      return c;
+    });
+    setCourts(updated);
+    localStorage.setItem('rovi_courts_data', JSON.stringify(updated));
+    if (activeCourt && activeCourt.id === courtId) {
+      setActiveCourt(updated.find(c => c.id === courtId) || null);
+    }
   };
 
   const activeCourts = courts.filter(c => c.status === 'active').length;
@@ -191,13 +269,33 @@ export default function CourtManagement() {
 
                   {/* Hover overlay actions */}
                   <div className="absolute inset-0 bg-[#0B132B]/95 border border-slate-800 rounded-xl p-4 flex flex-col justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 font-space">
-                    <button className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 hover:bg-slate-800/80 text-xs font-bold text-white rounded-lg border border-slate-800 transition-custom">
+                    <button 
+                      onClick={() => {
+                        setActiveCourt(court);
+                        setIsDetailOpen(true);
+                      }}
+                      className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 hover:bg-slate-800/80 text-xs font-bold text-white rounded-lg border border-slate-800 transition-custom"
+                    >
                       <Eye size={12} /> Xem thông tin sân
                     </button>
-                    <button className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 hover:bg-slate-800/80 text-xs font-bold text-white rounded-lg border border-slate-800 transition-custom">
+                    <button 
+                      onClick={() => {
+                        setActiveCourt(court);
+                        setConfigNormalPrice(court.priceNormal);
+                        setConfigPeakPrice(court.pricePeak);
+                        setIsConfigOpen(true);
+                      }}
+                      className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 hover:bg-slate-800/80 text-xs font-bold text-white rounded-lg border border-slate-800 transition-custom"
+                    >
                       <Settings size={12} /> Cấu hình khung giờ
                     </button>
-                    <button className="flex items-center justify-center gap-2 w-full py-2 bg-[#F43F5E]/10 hover:bg-[#F43F5E]/20 text-xs font-bold text-[#F43F5E] rounded-lg border border-[#F43F5E]/20 transition-custom">
+                    <button 
+                      onClick={() => {
+                        setActiveCourt(court);
+                        setIsMaintenanceOpen(true);
+                      }}
+                      className="flex items-center justify-center gap-2 w-full py-2 bg-[#F43F5E]/10 hover:bg-[#F43F5E]/20 text-xs font-bold text-[#F43F5E] rounded-lg border border-[#F43F5E]/20 transition-custom"
+                    >
                       <Wrench size={12} /> Báo cáo bảo trì
                     </button>
                   </div>
@@ -344,6 +442,205 @@ export default function CourtManagement() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Court Detail Modal */}
+      <Modal open={isDetailOpen} onClose={() => setIsDetailOpen(false)} title={`CHI TIẾT: ${activeCourt?.name}`} maxWidth="600px">
+        {activeCourt && (
+          <div className="space-y-6 font-space text-slate-300">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 space-y-1">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Bộ môn</span>
+                <div className="flex items-center gap-2">
+                  <SportIcon sport={activeCourt.sport} size="sm" showLabel />
+                </div>
+              </div>
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 space-y-1">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Mặt sân</span>
+                <span className="text-white font-bold text-sm block">{activeCourt.surface}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 text-center">
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Giờ thường</span>
+                <span className="text-white font-black text-sm block">{getPriceNormal(activeCourt)}</span>
+              </div>
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 text-center">
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Giờ vàng</span>
+                <span className="text-white font-black text-sm block">{getPricePeak(activeCourt)}</span>
+              </div>
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 text-center">
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Lấp đầy hôm nay</span>
+                <span className="text-[#38BDF8] font-black text-sm block">{activeCourt.utilization}%</span>
+              </div>
+            </div>
+
+            {/* Simulated Booking list */}
+            <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 space-y-3">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Lịch đặt sân hôm nay (26/06)</span>
+              <div className="space-y-2">
+                {activeCourt.status === 'maintenance' ? (
+                  <div className="p-3 bg-red-950/20 border border-red-500/20 rounded-lg text-xs text-red-400 flex items-center gap-2">
+                    <Wrench size={14} />
+                    <span>Sân đang trong trạng thái bảo trì. Không có lịch đặt.</span>
+                  </div>
+                ) : activeCourt.status === 'inactive' ? (
+                  <div className="p-3 bg-slate-900/40 border border-slate-800 rounded-lg text-xs text-slate-500 text-center">
+                    Sân đang ngừng hoạt động.
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 border border-slate-900 rounded-lg text-xs">
+                      <div>
+                        <p className="font-bold text-white">Nguyễn Văn Anh</p>
+                        <p className="text-[10px] text-slate-500">Đặt qua ứng dụng • 06:00 - 08:00</p>
+                      </div>
+                      <Badge variant="active">Đã check-in</Badge>
+                    </div>
+                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 border border-slate-900 rounded-lg text-xs">
+                      <div>
+                        <p className="font-bold text-white">Trần Thị Bích</p>
+                        <p className="text-[10px] text-slate-500">Khách vãng lai • 08:30 - 10:00</p>
+                      </div>
+                      <Badge variant="active">Đã check-in</Badge>
+                    </div>
+                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 border border-slate-900 rounded-lg text-xs">
+                      <div>
+                        <p className="font-bold text-white">CLB Alpha</p>
+                        <p className="text-[10px] text-slate-500">Thuê cố định • 14:00 - 17:00</p>
+                      </div>
+                      <Badge variant="pending">Chưa đến</Badge>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-slate-900">
+              <button 
+                type="button"
+                onClick={() => handleToggleCourtStatus(activeCourt.id)}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all active:scale-[0.97] ${
+                  activeCourt.status === 'active' 
+                    ? 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-400' 
+                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-400'
+                }`}
+              >
+                {activeCourt.status === 'active' ? 'Tạm ngưng hoạt động' : 'Kích hoạt hoạt động'}
+              </button>
+              <button 
+                type="button"
+                onClick={() => setIsDetailOpen(false)}
+                className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold border border-slate-800 rounded-lg transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Court Pricing Configuration Modal */}
+      <Modal open={isConfigOpen} onClose={() => setIsConfigOpen(false)} title={`CẤU HÌNH KHUNG GIỜ: ${activeCourt?.name}`} maxWidth="500px">
+        <form onSubmit={handleSaveConfig} className="space-y-5 font-space text-slate-300">
+          <div className="space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-900">
+            <Input 
+              label="GIÁ GIỜ THƯỜNG (VNĐ/GIỜ)"
+              type="text"
+              value={configNormalPrice}
+              onChange={e => setConfigNormalPrice(e.target.value)}
+              placeholder="Ví dụ: 150,000"
+              required
+            />
+            <Input 
+              label="GIÁ GIỜ VÀNG (VNĐ/GIỜ)"
+              type="text"
+              value={configPeakPrice}
+              onChange={e => setConfigPeakPrice(e.target.value)}
+              placeholder="Ví dụ: 220,000"
+              required
+            />
+            <Input 
+              label="KHUNG GIỜ VÀNG ÁP DỤNG"
+              type="text"
+              value={configPeakHours}
+              onChange={e => setConfigPeakHours(e.target.value)}
+              placeholder="Ví dụ: 17:00 - 22:00"
+              required
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-slate-900">
+            <button 
+              type="button"
+              onClick={() => setIsConfigOpen(false)}
+              className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold border border-slate-800 rounded-lg transition-colors"
+            >
+              Hủy
+            </button>
+            <button 
+              type="submit"
+              className="flex-1 py-2 bg-[#38BDF8] hover:bg-sky-400 text-xs font-bold text-slate-950 rounded-lg transition-colors flex items-center justify-center gap-1"
+            >
+              <Save size={14} />
+              Cập nhật giá
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Maintenance Report Modal */}
+      <Modal open={isMaintenanceOpen} onClose={() => setIsMaintenanceOpen(false)} title={`BÁO CÁO BẢO TRÌ: ${activeCourt?.name}`} maxWidth="500px">
+        <form onSubmit={handleSaveMaintenance} className="space-y-5 font-space text-slate-300">
+          <div className="space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-900">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Lý do bảo trì</label>
+              <textarea 
+                rows={3}
+                value={maintenanceReason}
+                onChange={e => setMaintenanceReason(e.target.value)}
+                placeholder="Nhập lý do bảo trì sân (Ví dụ: Thay bóng đèn AI bị cháy, vá thảm mốc...)"
+                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-red-500 text-white"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input 
+                label="BẮT ĐẦU" 
+                type="datetime-local" 
+                value={maintenanceStart}
+                onChange={e => setMaintenanceStart(e.target.value)}
+                required 
+              />
+              <Input 
+                label="KẾT THÚC DỰ KIẾN" 
+                type="datetime-local" 
+                value={maintenanceEnd}
+                onChange={e => setMaintenanceEnd(e.target.value)}
+                required 
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-slate-900">
+            <button 
+              type="button"
+              onClick={() => setIsMaintenanceOpen(false)}
+              className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold border border-slate-800 rounded-lg transition-colors"
+            >
+              Hủy
+            </button>
+            <button 
+              type="submit"
+              className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-xs font-bold text-white rounded-lg transition-colors flex items-center justify-center gap-1"
+            >
+              <Wrench size={14} />
+              Kích hoạt bảo trì
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
