@@ -19,6 +19,19 @@ const sports = [
   { name: 'Bóng chuyền', emoji: '🏐', color: '#8B5CF6', bg: 'rgba(139,92,246,0.1)' },
 ];
 
+const partners = [
+  { name: 'VBA Association', logo: '🏀' },
+  { name: 'HCMC Pickleball Club', logo: '🏓' },
+  { name: 'VTV Cab Sports', logo: '📺' },
+  { name: 'Saigon Heat', logo: '🔥' },
+  { name: 'Red Bull Vietnam', logo: '🐂' },
+  { name: 'Động Lực Group', logo: '⚡' },
+  { name: 'Viettel Sports', logo: '📡' },
+  { name: 'Becamex Tennis', logo: '🎾' },
+  { name: 'Thành Công Badminton', logo: '🏸' },
+  { name: 'MILO Vietnam', logo: '🥛' }
+];
+
 const features = [
   { 
     icon: <Calendar size={24} />, 
@@ -234,18 +247,34 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SPORTS SPECTRUM BAR (Thanh trượt mượt mà) */}
-      <section className="border-y border-white/5 bg-[#030712]/50 py-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between gap-6 overflow-x-auto no-scrollbar scroll-smooth">
-            {sports.map((s, idx) => (
+      {/* DOUBLE COMPATIBLE MARQUEE (Sports & Partners) */}
+      <section className="border-y border-white/5 bg-[#030712]/50 py-8 overflow-hidden space-y-6">
+        {/* Hàng 1: Môn thể thao (Chạy từ trái qua phải) */}
+        <div className="relative w-full overflow-hidden flex items-center">
+          <div className="animate-marquee-right flex gap-6">
+            {[...sports, ...sports, ...sports].map((s, idx) => (
               <div 
                 key={idx} 
-                className="flex items-center gap-3 flex-shrink-0 px-5 py-2.5 rounded-full border border-white/5 hover:border-emerald-500/30 transition-all duration-300 cursor-pointer"
+                className="flex items-center gap-3 flex-shrink-0 px-6 py-3 rounded-full border border-white/5 hover:border-emerald-500/30 transition-all duration-300 cursor-pointer"
                 style={{ backgroundColor: s.bg }}
               >
                 <span className="text-lg">{s.emoji}</span>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 font-space">{s.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Hàng 2: Đối tác và CLB liên kết (Chạy từ phải qua trái) */}
+        <div className="relative w-full overflow-hidden flex items-center">
+          <div className="animate-marquee-left flex gap-6">
+            {[...partners, ...partners, ...partners].map((p, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-center gap-3 flex-shrink-0 px-6 py-3 rounded-xl border border-white/5 bg-slate-950/40 hover:border-teal-500/30 transition-all duration-300 cursor-pointer animate-in fade-in"
+              >
+                <span className="text-lg">{p.logo}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 hover:text-white font-space">{p.name}</span>
               </div>
             ))}
           </div>
