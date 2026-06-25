@@ -194,7 +194,7 @@ export default function BookingCalendar() {
             options={courts.map(c => ({ value: c.name, label: c.name }))}
             defaultValue={selectedSlot?.court}
           />
-          <Input label="NGÀY ĐẶT" type="date" defaultValue="2025-06-25" />
+          <Input label="NGÀY ĐẶT" type="date" defaultValue={now.toISOString().split('T')[0]} />
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="BẮT ĐẦU"

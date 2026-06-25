@@ -34,3 +34,7 @@ build/
 # Old project files
 old-vite/
 
+# TypeScript build info cache
+*.tsbuildinfo
+
+

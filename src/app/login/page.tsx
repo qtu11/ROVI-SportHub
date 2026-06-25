@@ -26,7 +26,7 @@ export default function LoginPage() {
         } else if (user.role === 'tenant_admin') {
           router.replace('/b2b');
         } else {
-          router.replace('/');
+          router.replace('/customer');
         }
       }
     }
@@ -52,7 +52,7 @@ export default function LoginPage() {
           } else if (user.role === 'tenant_admin') {
             router.push('/b2b');
           } else {
-            router.push('/');
+            router.push('/customer');
           }
         }
       }
@@ -74,7 +74,7 @@ export default function LoginPage() {
         } else if (role === 'tenant_admin') {
           router.push('/b2b');
         } else {
-          router.push('/');
+          router.push('/customer');
         }
       }
     } catch (err) {

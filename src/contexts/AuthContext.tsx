@@ -130,7 +130,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
         } else if (user.role === 'tenant_admin') {
           router.replace('/b2b');
         } else {
-          router.replace('/');
+          router.replace('/customer');
         }
       }
     }

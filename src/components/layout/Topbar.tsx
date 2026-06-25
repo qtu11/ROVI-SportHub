@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { Bell, Settings, ChevronDown, LogOut, User, RefreshCw } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface TopbarProps {
   title?: string;
@@ -12,6 +14,8 @@ interface TopbarProps {
 export const Topbar: React.FC<TopbarProps> = ({ title, rightContent, sidebarWidth }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const { logout } = useAuth();
+  const router = useRouter();
 
   const notifications = [
     { id: 1, type: 'booking', text: 'Booking mới: Sân 3, 14:00-16:00', time: '2 phút trước', group: 'Hôm nay' },
@@ -97,7 +101,13 @@ export const Topbar: React.FC<TopbarProps> = ({ title, rightContent, sidebarWidt
                   <RefreshCw size={14} /> Thay đổi vai trò
                 </button>
                 <div className="border-t border-slate-900 my-1.5" />
-                <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-[#F43F5E] hover:bg-[#F43F5E]/10 transition-colors text-left">
+                <button 
+                  onClick={() => {
+                    logout();
+                    router.push('/login');
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-[#F43F5E] hover:bg-[#F43F5E]/10 transition-colors text-left"
+                >
                   <LogOut size={14} /> Đăng xuất
                 </button>
               </div>
