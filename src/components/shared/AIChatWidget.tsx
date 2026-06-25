@@ -160,21 +160,66 @@ export default function AIChatWidget() {
 
           {/* Danh sách tin nhắn */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+            {messages.map((msg, index) => {
+              const handleQuickBook = (court: string, time: string, price: string) => {
+                localStorage.setItem('rovi_quick_book', JSON.stringify({ court, time, price }));
+                window.location.href = '/customer?quick_book=true';
+              };
+
+              const renderMessageContent = (content: string) => {
+                const quickBookRegex = /\[QUICK_BOOK:(.*?)\]/g;
+                const match = quickBookRegex.exec(content);
+                
+                if (match) {
+                  const parts = match[1].split('|');
+                  const court = parts[0];
+                  const time = parts[1];
+                  const priceVal = parseInt(parts[2]) || 150000;
+                  const priceFormatted = priceVal.toLocaleString('vi-VN') + 'đ';
+                  const textWithoutAction = content.replace(quickBookRegex, '').trim();
+
+                  return (
+                    <div className="space-y-3 font-sans">
+                      <p className="whitespace-pre-line">{textWithoutAction}</p>
+                      <div className="bg-slate-950/80 border border-emerald-500/20 rounded-xl p-3 flex flex-col gap-2 shadow-lg">
+                        <div className="text-[9px] text-teal-400 font-bold uppercase tracking-wider font-space">ĐẶT SÂN NHANH QUA AI</div>
+                        <div className="flex justify-between text-[11px] text-slate-300">
+                          <span>Sân: <strong>{court}</strong></span>
+                          <span>Giờ: <strong>{time}</strong></span>
+                        </div>
+                        <div className="flex justify-between items-center mt-1 pt-2 border-t border-white/5">
+                          <span className="text-xs font-bold text-amber-400">{priceFormatted}</span>
+                          <button 
+                            onClick={() => handleQuickBook(court, time, parts[2])}
+                            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[9px] uppercase px-3 py-1.5 rounded-lg transition-colors active:scale-95 shadow-md shadow-emerald-500/10"
+                          >
+                            Đặt lịch ngay
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                return <p className="whitespace-pre-line">{content}</p>;
+              };
+
+              return (
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed border ${msg.role === 'user'
-                      ? 'bg-emerald-600/20 text-emerald-100 border-emerald-500/20 rounded-tr-none shadow-[0_2px_12px_rgba(16,185,129,0.1)]'
-                      : 'bg-slate-900/80 text-slate-200 border-white/5 rounded-tl-none'
-                    }`}
+                  key={index}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="whitespace-pre-line">{msg.content}</p>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed border ${msg.role === 'user'
+                        ? 'bg-emerald-600/20 text-emerald-100 border-emerald-500/20 rounded-tr-none shadow-[0_2px_12px_rgba(16,185,129,0.1)]'
+                        : 'bg-slate-900/80 text-slate-200 border-white/5 rounded-tl-none'
+                      }`}
+                  >
+                    {renderMessageContent(msg.content)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {isLoading && (
               <div className="flex justify-start">

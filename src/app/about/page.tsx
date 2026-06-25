@@ -2,55 +2,81 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Target, Cpu, Users, Milestone, Award, Sparkles, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Target, Cpu, Users, Award, Sparkles, ShieldCheck, Layers, Eye, RefreshCw, BarChart3, HardHat } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { ThreeDTilt } from '../../components/ui/ThreeDTilt';
 
 export default function AboutPage() {
   const team = [
-    { 
-      name: 'Nguyễn Thị Thanh Hằng', 
-      role: 'Founder & Product Lead', 
-      desc: 'Định hình chiến lược phát triển sản phẩm, tối ưu hóa trải nghiệm người dùng B2C và giải pháp vận hành B2B.', 
-      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Hang' 
+    {
+      name: 'Nguyễn Thị Thanh Hằng',
+      role: 'Founder & Product Lead (Value Propositions)',
+      desc: 'Nghiên cứu và định hình Giải pháp giá trị (Value Propositions) cốt lõi của nền tảng, tối ưu hóa lợi ích thiết thực cho cả chủ sân B2B và người chơi B2C.',
+      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Hang'
     },
-    { 
-      name: 'Nguyễn Quang Tú', 
-      role: 'Co-Founder & Technical Architect', 
-      desc: 'Thiết kế kiến trúc hệ thống đám mây, tích hợp các giải pháp xử lý video AI và thuật toán tự động hóa đối soát.', 
-      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Tu' 
+    {
+      name: 'Nguyễn Quang Tú',
+      role: 'Co-Founder & Platform Lead (Revenue & Costs)',
+      desc: 'Hợp nhất kiến trúc Platform, chịu trách nhiệm tổng hợp khung BMC, chuẩn hóa mô hình tài chính gồm Dòng doanh thu và Cấu trúc chi phí tổng thể.',
+      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Tu'
     },
-    { 
-      name: 'Hồ Trọng Quý', 
-      role: 'Co-Founder & Frontend Engineer', 
-      desc: 'Nghiên cứu và phát triển giao diện người dùng Dark Tech cao cấp, tối ưu hóa trải nghiệm tương tác 3D mượt mà.', 
-      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Quy' 
+    {
+      name: 'Trần Tín Dũng',
+      role: 'Lead Backend Developer (Segments & Channels)',
+      desc: 'Phân tích Phân khúc khách hàng mục tiêu (Customer Segments) và thiết kế chiến lược xây dựng Kênh thông tin & Kênh phân phối (Channels) hiệu quả.',
+      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Dung'
     },
-    { 
-      name: 'Trần Tín Dũng', 
-      role: 'Lead Backend Developer', 
-      desc: 'Phụ trách cơ sở dữ liệu quan hệ, tối ưu hóa hiệu năng câu truy vấn SQL và xây dựng hệ thống API dynamic booking.', 
-      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Dung' 
+    {
+      name: 'Hồ Trọng Quý',
+      role: 'Co-Founder & Frontend Engineer (Relationships)',
+      desc: 'Thiết kế các giải pháp công nghệ duy trì và tối ưu hóa Quan hệ khách hàng (Customer Relationships), tăng tỷ lệ giữ chân (Retention rate) trên hệ thống.',
+      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Quy'
     },
-    { 
-      name: 'Nguyễn Tiến Hùng', 
-      role: 'AI & Computer Vision Engineer', 
-      desc: 'Phát triển mô hình nhận diện hành động trên sân đấu, tự động cắt clip highlight 15s phục vụ truyền thông mạng xã hội.', 
-      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Hung' 
+    {
+      name: 'Nguyễn Tiến Hùng',
+      role: 'AI Engineer (Tech Financials)',
+      desc: 'Dự toán chi phí hạ tầng xử lý Video AI (Cost Structure) và hoạch định các mô hình khai thác dòng tiền từ dịch vụ Premium Highlights (Revenue Streams).',
+      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Hung'
     },
-    { 
-      name: 'Huỳnh Hoàng Phương Vy', 
-      role: 'Marketing & Business Development', 
-      desc: 'Phát triển mạng lưới đối tác sân bãi toàn quốc, kết nối tài trợ thương hiệu và xây dựng mô hình AdMarketplace.', 
-      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Vy' 
+    {
+      name: 'Huỳnh Hoàng Phương Vy',
+      role: 'Marketing & Biz Dev (Resources & Partners)',
+      desc: 'Xác định các Tài nguyên chính (Key Resources) về mạng lưới, công nghệ và thiết lập mối quan hệ với các Đối tác chiến lược (Key Partners) toàn quốc.',
+      img: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Vy'
     },
   ];
 
-  const milestones = [
-    { year: '03/2026', title: 'Ý tưởng khởi nguồn tại iVentures', desc: 'Đội ngũ thành lập để tham gia cuộc thi iVentures Launchpad 2026 với sứ mệnh số hóa và giải quyết bài toán lấp đầy giờ trống của các cụm sân.' },
-    { year: '04/2026', title: 'Vượt qua Vòng loại & Xây dựng Kiến trúc', desc: 'Định nghĩa thành công mô hình Database-First, API Contracts chuẩn hóa kết nối B2B và B2C.' },
-    { year: '05/2026', title: 'Phát triển MVP & Trực quan hóa 3D', desc: 'Hoàn thiện giao diện B2B Dashboard với tính năng xếp lịch thi đấu tự động và Landing Page tương tác quả cầu 3D.' },
-    { year: '06/2026', title: 'Vòng chung kết & Thắng giải cuộc thi', desc: 'Tích hợp thành công cổng thanh toán QR Code động B2C và cổng đối soát tự động. Xuất sắc đạt giải thưởng cao nhất tại iVentures Launchpad 2026.' },
+  const bmcHighlights = [
+    {
+      icon: <Layers className="text-sky-400" size={20} />,
+      title: "Giải pháp Giá trị",
+      owner: "Thanh Hằng",
+      desc: "Tự động hóa vận hành, loại bỏ 100% rủi ro sai sót lịch trùng cho chủ sân B2B. Đồng thời đem lại trải nghiệm công nghệ chuẩn vận động viên cho người chơi B2C (AI Highlights, ELO Ranking)."
+    },
+    {
+      icon: <Eye className="text-lime-400" size={20} />,
+      title: "Khách hàng & Kênh",
+      owner: "Tín Dũng",
+      desc: "Mô hình Nền tảng Đa bên (Multi-sided) tập trung vào các cụm sân phong trào (Bóng đá, Cầu lông, Pickleball) tại TP.HCM và thế hệ Gen Z/Millennials chơi thể thao qua ứng dụng di động."
+    },
+    {
+      icon: <RefreshCw className="text-purple-400" size={20} />,
+      title: "Quan hệ Khách hàng",
+      owner: "Trọng Quý",
+      desc: "Xây dựng tệp khách hàng trung thành thông qua Dashboard phân tích tăng trưởng doanh thu tự động cho chủ sân và cơ chế nâng hạng thành viên, giữ chân người chơi bằng Gamification."
+    },
+    {
+      icon: <BarChart3 className="text-amber-400" size={20} />,
+      title: "Cấu trúc Tài chính",
+      owner: "Quang Tú & Tiến Hùng",
+      desc: "Đa dạng hóa dòng tiền từ Subscription B2B, hoa hồng Booking B2C và Premium AI Video Content. Tối ưu chi phí nhờ kiến trúc Cloud linh hoạt và hệ thống tự cấp nguồn miễn phí."
+    },
+    {
+      icon: <HardHat className="text-pink-400" size={20} />,
+      title: "Nguồn lực & Đối tác",
+      owner: "Phương Vy",
+      desc: "Khai thác tài nguyên lõi từ thuật toán Computer Vision độc quyền và mạng lưới đối tác chiến lược gồm các liên đoàn thể thao, chuỗi cung ứng sân bãi và các nhà tài trợ thương hiệu."
+    }
   ];
 
   return (
@@ -120,26 +146,31 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* iVentures Origin Story Timeline */}
+      {/* Business Model Canvas Matrix Showcase */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="flex items-center gap-3 mb-10 border-b border-slate-900 pb-4">
-          <Milestone className="text-[#38BDF8]" />
-          <h2 className="font-space font-bold text-lg text-white uppercase tracking-wider">Hành trình iVentures Launchpad 2026</h2>
+          <Layers className="text-[#38BDF8]" />
+          <h2 className="font-space font-bold text-lg text-white uppercase tracking-wider">Khung Chiến Lược Kinh Doanh (BMC)</h2>
         </div>
-        
-        <div className="relative border-l border-slate-900 pl-6 ml-4 space-y-12">
-          {milestones.map((item, idx) => (
-            <div key={idx} className="relative group">
-              {/* Dot indicator */}
-              <div className="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-2 border-slate-800 bg-[#020617] group-hover:border-[#38BDF8] transition-all flex items-center justify-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-transparent group-hover:bg-[#38BDF8] transition-all" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {bmcHighlights.map((block, idx) => (
+            <Card key={idx} className={`p-6 bg-[#0B132B]/30 border border-slate-900 flex flex-col justify-between ${idx === 3 ? 'md:col-span-2 lg:col-span-2' : ''}`}>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    {block.icon}
+                    <h3 className="font-space font-bold text-sm text-white uppercase tracking-wide">{block.title}</h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-900">
+                    Phụ trách: {block.owner}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed font-space pt-1">
+                  {block.desc}
+                </p>
               </div>
-              <div className="space-y-1 font-space">
-                <span className="font-mono text-xs font-bold text-[#38BDF8] bg-sky-500/5 px-2 py-0.5 rounded border border-sky-500/10">{item.year}</span>
-                <h3 className="font-bold text-base text-white mt-2">{item.title}</h3>
-                <p className="text-xs text-slate-400 max-w-3xl leading-relaxed mt-1">{item.desc}</p>
-              </div>
-            </div>
+            </Card>
           ))}
         </div>
       </section>
@@ -150,7 +181,7 @@ export default function AboutPage() {
           <Cpu className="text-[#A3E635]" />
           <h2 className="font-space font-bold text-lg text-white uppercase tracking-wider">Hạ tầng công nghệ chuyên biệt</h2>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="p-6 bg-[#0B132B]/30 border border-slate-900">
             <h3 className="font-space font-bold text-sm text-[#38BDF8] mb-2 uppercase">AUTO RECONCILIATION</h3>

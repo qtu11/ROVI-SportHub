@@ -5,7 +5,7 @@ import { Sidebar, NavItem } from '../../components/layout/Sidebar';
 import { Topbar } from '../../components/layout/Topbar';
 import { Badge } from '../../components/ui/Badge';
 import {
-  LayoutDashboard, CalendarDays, MapPin, Trophy, UserCog, Wallet, Target
+  LayoutDashboard, CalendarDays, MapPin, Trophy, UserCog, Wallet, Target, Video
 } from 'lucide-react';
 
 const b2bNavItems: NavItem[] = [
@@ -16,6 +16,7 @@ const b2bNavItems: NavItem[] = [
   { path: '/b2b/staff', label: 'Nhân sự', icon: <UserCog size={20} />, group: 'VẬN HÀNH' },
   { path: '/b2b/finance', label: 'Tài chính', icon: <Wallet size={20} />, group: 'VẬN HÀNH' },
   { path: '/b2b/sponsors', label: 'Tài trợ', icon: <Target size={20} />, group: 'VẬN HÀNH' },
+  { path: '/b2b/camera', label: 'AI Camera', icon: <Video size={20} />, group: 'VẬN HÀNH' },
 ];
 
 const getShiftInfo = () => {

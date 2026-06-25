@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { 
   Search, Calendar as CalendarIcon, Clock, MapPin, Award, CheckCircle2, 
   CreditCard, ChevronRight, Sparkles, Filter, ShieldCheck, QrCode, 
-  ArrowLeft, ShoppingBag, Landmark, ArrowRight, Star
+  ArrowLeft, ShoppingBag, Landmark, ArrowRight, Star, Users, Check, Flame, MessageSquare
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Tabs';
 
 // Mock data
 const facilities = [
@@ -41,6 +42,28 @@ const timeSlots = [
   { id: 't7', time: '20:00 - 22:00', price: 240000, peak: true },
 ];
 
+interface PublicMatchmakingSlot {
+  id: string;
+  facilityName: string;
+  sport: string;
+  court: string;
+  date: string;
+  time: string;
+  hostName: string;
+  level: string;
+  currentPlayers: number;
+  maxPlayers: number;
+  pricePerPlayer: number;
+  totalPrice: number;
+  joinedPlayers: string[];
+}
+
+const initialMatchmakingSlots: PublicMatchmakingSlot[] = [
+  { id: 'MS-8012', facilityName: 'ROVI Pickleball Club Q7', sport: 'Pickleball', court: 'Sân 1', date: '2026-06-26', time: '18:00 - 20:00', hostName: 'Anh Tú', level: 'Trung bình', currentPlayers: 2, maxPlayers: 4, totalPrice: 280000, pricePerPlayer: 70000, joinedPlayers: ['Anh Tú', 'Nguyễn Văn Nam'] },
+  { id: 'MS-5412', facilityName: 'CLB Tennis Thảo Điền', sport: 'Tennis', court: 'Sân 2', date: '2026-06-26', time: '16:00 - 18:00', hostName: 'Hoàng Lâm', level: 'Khá/Khó', currentPlayers: 1, maxPlayers: 4, totalPrice: 320000, pricePerPlayer: 80000, joinedPlayers: ['Hoàng Lâm'] },
+  { id: 'MS-1109', facilityName: 'ROVI Arena Đa Năng Phú Nhuận', sport: 'Cầu lông', court: 'Sân 3', date: '2026-06-26', time: '20:00 - 22:00', hostName: 'Khánh Linh', level: 'Mới chơi', currentPlayers: 3, maxPlayers: 4, totalPrice: 240000, pricePerPlayer: 60000, joinedPlayers: ['Khánh Linh', 'Minh Châu', 'Thu Trang'] }
+];
+
 export default function CustomerPortal() {
   const [selectedSport, setSelectedSport] = useState('pickleball');
   const [selectedFacility, setSelectedFacility] = useState(facilities[0]);
@@ -48,24 +71,38 @@ export default function CustomerPortal() {
   const [selectedCourt, setSelectedCourt] = useState('Sân 1');
   const [selectedSlot, setSelectedSlot] = useState<typeof timeSlots[0] | null>(null);
   
+  // Tab control at browse: 'booking' (Đặt sân cá nhân) vs 'matchmaking' (Tìm nhóm ghép)
+  const [browseTab, setBrowseTab] = useState<'booking' | 'matchmaking'>('booking');
+  
+  // Matchmaking State
+  const [matchmakingSlots, setMatchmakingSlots] = useState<PublicMatchmakingSlot[]>([]);
+  const [selectedJoinSlot, setSelectedJoinSlot] = useState<PublicMatchmakingSlot | null>(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [isMatchmakingBooking, setIsMatchmakingBooking] = useState(false); // Đang tham gia ghép nhóm?
+  
   // Form booking state
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [bookingNote, setBookingNote] = useState('');
   
+  // Bật ghép sân khi tự đặt sân mới
+  const [enablePublicMatchmaking, setEnablePublicMatchmaking] = useState(false);
+  const [maxPlayersInput, setMaxPlayersInput] = useState(4);
+  const [levelInput, setLevelInput] = useState('Trung bình');
+
   // UI screens state
   const [step, setStep] = useState<'browse' | 'booking' | 'payment' | 'success'>('browse');
-  const [showQRModal, setShowQRModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   // Bookings list state
   const [myBookings, setMyBookings] = useState([
-    { id: 'RV-9081', facilityName: 'ROVI Pickleball Club Q7', sport: 'Pickleball', court: 'Sân 2', date: '2026-06-25', time: '18:00 - 20:00', amount: '₫280,000', status: 'completed' },
-    { id: 'RV-8762', facilityName: 'CLB Tennis Thảo Điền', sport: 'Tennis', court: 'Sân 1', date: '2026-06-24', time: '16:00 - 18:00', amount: '₫350,000', status: 'completed' },
+    { id: 'RV-9081', facilityName: 'ROVI Pickleball Club Q7', sport: 'Pickleball', court: 'Sân 2', date: '2026-06-25', time: '18:00 - 20:00', amount: '₫280,000', status: 'completed', type: 'Cá nhân' },
+    { id: 'RV-8762', facilityName: 'CLB Tennis Thảo Điền', sport: 'Tennis', court: 'Sân 1', date: '2026-06-24', time: '16:00 - 18:00', amount: '₫350,000', status: 'completed', type: 'Cá nhân' },
   ]);
 
-  // Giả lập lấy tên từ localStorage nếu đã đăng nhập
+  // Read URL params and setup initial data
   useEffect(() => {
+    // Load local storage
     const savedUser = localStorage.getItem('rovi_user');
     if (savedUser) {
       try {
@@ -74,7 +111,35 @@ export default function CustomerPortal() {
         setCustomerPhone(parsed.phone || '0901234567');
       } catch (e) {}
     }
+
+    const savedMatchmaking = localStorage.getItem('rovi_matchmaking_slots');
+    if (savedMatchmaking) {
+      setMatchmakingSlots(JSON.parse(savedMatchmaking));
+    } else {
+      setMatchmakingSlots(initialMatchmakingSlots);
+      localStorage.setItem('rovi_matchmaking_slots', JSON.stringify(initialMatchmakingSlots));
+    }
+
+    // Process AI quick book parameter
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('quick_book') === 'true') {
+      const qb = localStorage.getItem('rovi_quick_book');
+      if (qb) {
+        try {
+          const parsed = JSON.parse(qb);
+          const matchedSlot = timeSlots.find(t => t.time === parsed.time) || timeSlots[5];
+          setSelectedSlot(matchedSlot);
+          setSelectedCourt(parsed.court);
+          setStep('booking');
+        } catch (e) {}
+      }
+    }
   }, []);
+
+  const saveMatchmakingSlots = (data: PublicMatchmakingSlot[]) => {
+    setMatchmakingSlots(data);
+    localStorage.setItem('rovi_matchmaking_slots', JSON.stringify(data));
+  };
 
   const dates = [
     { value: '2026-06-25', label: 'Hôm nay (25/06)' },
@@ -98,7 +163,6 @@ export default function CustomerPortal() {
     setSelectedSport(sportId);
     setSelectedSlot(null);
     
-    // Tìm cụm sân đầu tiên hỗ trợ môn thể thao này
     const sportName = 
       sportId === 'pickleball' ? 'pickleball' : 
       sportId === 'tennis' ? 'tennis' : 
@@ -115,7 +179,8 @@ export default function CustomerPortal() {
     const fac = facilities.find(f => f.id === facilityId);
     if (fac) {
       setSelectedFacility(fac);
-      setSelectedSlot(null); // Reset slot của sân cũ
+      setSelectedSlot(null);
+      setIsMatchmakingBooking(false);
       setStep('booking');
     }
   };
@@ -126,30 +191,103 @@ export default function CustomerPortal() {
     setStep('payment');
   };
 
+  const openJoinMatchmaking = (slot: PublicMatchmakingSlot) => {
+    setSelectedJoinSlot(slot);
+    setShowJoinModal(true);
+  };
+
+  const handleJoinMatchmakingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedJoinSlot) return;
+    
+    // Setup state thanh toán
+    setIsMatchmakingBooking(true);
+    setStep('payment');
+    setShowJoinModal(false);
+  };
+
   const handlePaymentConfirm = async () => {
     setIsLoading(true);
-    // Giả lập kết nối ngân hàng, đối soát QR
     await new Promise(resolve => setTimeout(resolve, 1500));
     
+    let amountStr = '';
+    let descriptionType = 'Cá nhân';
+
+    if (isMatchmakingBooking && selectedJoinSlot) {
+      // 1. Cập nhật slot ghép sân
+      const updated = matchmakingSlots.map(s => {
+        if (s.id === selectedJoinSlot.id) {
+          return {
+            ...s,
+            currentPlayers: s.currentPlayers + 1,
+            joinedPlayers: [...s.joinedPlayers, customerName]
+          };
+        }
+        return s;
+      });
+      saveMatchmakingSlots(updated);
+      
+      amountStr = `₫${selectedJoinSlot.pricePerPlayer.toLocaleString()}`;
+      descriptionType = 'Ghép sân';
+    } else if (selectedSlot) {
+      // 2. Tạo ca đặt sân mới
+      amountStr = `₫${(enablePublicMatchmaking ? (selectedSlot.price / maxPlayersInput) : selectedSlot.price).toLocaleString()}`;
+      
+      if (enablePublicMatchmaking) {
+        descriptionType = 'Chủ phòng Ghép';
+        // Thêm vào danh sách ghép sân công cộng
+        const newPublicSlot: PublicMatchmakingSlot = {
+          id: `MS-${Math.floor(1000 + Math.random() * 9000)}`,
+          facilityName: selectedFacility.name,
+          sport: selectedSport === 'pickleball' ? 'Pickleball' : selectedSport === 'tennis' ? 'Tennis' : 'Cầu lông',
+          court: selectedCourt,
+          date: selectedDate,
+          time: selectedSlot.time,
+          hostName: customerName,
+          level: levelInput,
+          currentPlayers: 1,
+          maxPlayers: maxPlayersInput,
+          totalPrice: selectedSlot.price,
+          pricePerPlayer: Math.round(selectedSlot.price / maxPlayersInput),
+          joinedPlayers: [customerName]
+        };
+        saveMatchmakingSlots([newPublicSlot, ...matchmakingSlots]);
+      }
+    }
+
     const newBooking = {
       id: `RV-${Math.floor(1000 + Math.random() * 9000)}`,
-      facilityName: selectedFacility.name,
-      sport: 
+      facilityName: isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.facilityName : selectedFacility.name,
+      sport: isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.sport : (
         selectedSport === 'pickleball' ? 'Pickleball' : 
         selectedSport === 'tennis' ? 'Tennis' : 
-        selectedSport === 'badminton' ? 'Cầu lông' :
-        selectedSport === 'football' ? 'Bóng đá' :
-        selectedSport === 'basketball' ? 'Bóng rổ' : 'Bơi lội',
-      court: selectedCourt,
-      date: selectedDate,
-      time: selectedSlot?.time || '',
-      amount: `₫${selectedSlot?.price.toLocaleString()}`,
-      status: 'confirmed'
+        selectedSport === 'badminton' ? 'Cầu lông' : 'Bóng đá'
+      ),
+      court: isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.court : selectedCourt,
+      date: isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.date : selectedDate,
+      time: isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.time : (selectedSlot?.time || ''),
+      amount: amountStr,
+      status: 'confirmed',
+      type: descriptionType
     };
 
     setMyBookings([newBooking, ...myBookings]);
+    
+    // Save user info
+    localStorage.setItem('rovi_user', JSON.stringify({ name: customerName, phone: customerPhone }));
+    
     setIsLoading(false);
     setStep('success');
+  };
+
+  const getQRValue = () => {
+    if (isMatchmakingBooking && selectedJoinSlot) {
+      return selectedJoinSlot.pricePerPlayer;
+    }
+    if (selectedSlot) {
+      return enablePublicMatchmaking ? Math.round(selectedSlot.price / maxPlayersInput) : selectedSlot.price;
+    }
+    return 0;
   };
 
   return (
@@ -163,7 +301,7 @@ export default function CustomerPortal() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="font-space font-bold text-xl tracking-tight text-white">
-              R<span className="text-[#38BDF8]">O</span>VI <span className="text-xs bg-sky-500/10 border border-sky-500/20 text-[#38BDF8] px-2 py-0.5 rounded-full uppercase tracking-widest font-mono">B2C</span>
+              R<span className="text-[#38BDF8]">O</span>VI <span className="text-xs bg-sky-500/10 border border-sky-500/20 text-[#38BDF8] px-2 py-0.5 rounded-full uppercase tracking-widest font-mono">B2C Portal</span>
             </Link>
           </div>
           <div className="flex items-center gap-4">
@@ -180,7 +318,7 @@ export default function CustomerPortal() {
       {/* MAIN CONTAINER */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
         
-        {/* STEP 1: BROWSE FACILITIES */}
+        {/* STEP 1: BROWSE MAIN */}
         {step === 'browse' && (
           <div className="space-y-10 animate-fadeIn">
             {/* Hero & Search Banner */}
@@ -195,12 +333,37 @@ export default function CustomerPortal() {
                 </span>
               </h1>
               <p className="text-sm text-slate-400 font-space max-w-lg mx-auto">
-                Hệ thống đặt lịch tự động kết nối trực tiếp với ban vận hành của các câu lạc bộ tennis, pickleball và cầu lông hàng đầu.
+                Số hóa đặt lịch, kết nối cộng đồng phong trào và mở khóa tính năng chia sẻ tiền sân tự động.
               </p>
             </div>
 
+            {/* Main Tabs Selection (Đặt sân vs Ghép sân) */}
+            <div className="flex justify-center border-b border-slate-900 max-w-md mx-auto p-1 bg-slate-950/40 rounded-xl border">
+              <button 
+                onClick={() => setBrowseTab('booking')}
+                className={`flex-1 py-2 text-xs font-bold font-space rounded-lg transition-colors ${
+                  browseTab === 'booking' ? 'bg-[#38BDF8]/15 text-[#38BDF8]' : 'text-slate-500 hover:text-white'
+                }`}
+              >
+                ĐẶT SÂN CÁ NHÂN
+              </button>
+              <button 
+                onClick={() => setBrowseTab('matchmaking')}
+                className={`flex-1 py-2 text-xs font-bold font-space rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+                  browseTab === 'matchmaking' ? 'bg-[#A3E635]/15 text-[#A3E635]' : 'text-slate-500 hover:text-white'
+                }`}
+              >
+                <Users size={12} />
+                TÌM NHÓM GHÉP GIAO LƯU
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-500"></span>
+                </span>
+              </button>
+            </div>
+
             {/* Filter Sports Bar */}
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-3 flex-wrap">
               {sports.map((sport) => (
                 <button
                   key={sport.id}
@@ -217,71 +380,175 @@ export default function CustomerPortal() {
               ))}
             </div>
 
-            {/* List Facilities Grid */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-900 pb-4">
-                <h2 className="font-space font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
-                  <MapPin size={18} className="text-[#38BDF8]" /> Cụm sân hoạt động gần đây
-                </h2>
-                <span className="text-xs text-slate-500 font-space">Hiển thị {filteredFacilities.length} địa điểm</span>
-              </div>
+            {/* TAB CONTENTS */}
+            {browseTab === 'booking' ? (
+              // 1. ĐẶT SÂN RIÊNG CÁ NHÂN
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-900 pb-4">
+                  <h2 className="font-space font-bold text-sm text-white uppercase tracking-wider flex items-center gap-2">
+                    <MapPin size={16} className="text-[#38BDF8]" /> Cụm sân hoạt động gần đây
+                  </h2>
+                  <span className="text-xs text-slate-500 font-space font-mono">Hiển thị {filteredFacilities.length} địa điểm</span>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {filteredFacilities.map((fac) => (
-                  <Card 
-                    key={fac.id}
-                    hover 
-                    onClick={() => handleSelectFacility(fac.id)}
-                    className="flex flex-col justify-between overflow-hidden border border-slate-800/80 bg-[#0B132B]/40 p-0 rounded-2xl group"
-                  >
-                    <div>
-                      {/* Image header */}
-                      <div className="h-44 w-full relative overflow-hidden bg-slate-950">
-                        <img 
-                          src={fac.image} 
-                          alt={fac.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                        />
-                        <div className="absolute top-3 left-3 flex gap-1">
-                          {fac.sports.map(s => (
-                            <Badge key={s} variant="info" className="bg-slate-950/70 border-slate-800 text-[10px] uppercase font-bold text-white px-2 py-0.5">
-                              {s}
-                            </Badge>
-                          ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {filteredFacilities.map((fac) => (
+                    <Card 
+                      key={fac.id}
+                      hover 
+                      onClick={() => handleSelectFacility(fac.id)}
+                      className="flex flex-col justify-between overflow-hidden border border-slate-800/80 bg-[#0B132B]/40 p-0 rounded-2xl group"
+                    >
+                      <div>
+                        {/* Image header */}
+                        <div className="h-44 w-full relative overflow-hidden bg-slate-950">
+                          <img 
+                            src={fac.image} 
+                            alt={fac.name} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                          />
+                          <div className="absolute top-3 left-3 flex gap-1">
+                            {fac.sports.map(s => (
+                              <Badge key={s} variant="info" className="bg-slate-950/70 border-slate-800 text-[10px] uppercase font-bold text-white px-2 py-0.5">
+                                {s}
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="absolute bottom-3 right-3 bg-slate-950/80 border border-slate-800 px-2 py-0.5 rounded-lg flex items-center gap-1 text-[10px] font-bold text-white">
+                            <Star size={10} className="fill-yellow-500 text-yellow-500" /> {fac.rating}
+                          </div>
                         </div>
-                        <div className="absolute bottom-3 right-3 bg-slate-950/80 border border-slate-800 px-2 py-0.5 rounded-lg flex items-center gap-1 text-[10px] font-bold text-white">
-                          <Star size={10} className="fill-yellow-500 text-yellow-500" /> {fac.rating}
+
+                        {/* Content */}
+                        <div className="p-6 space-y-3">
+                          <h3 className="font-space font-bold text-base text-white group-hover:text-[#38BDF8] transition-colors leading-snug">
+                            {fac.name}
+                          </h3>
+                          <p className="text-xs text-slate-400 flex items-start gap-1 leading-relaxed min-h-[32px]">
+                            <MapPin size={13} className="text-slate-500 flex-shrink-0 mt-0.5" />
+                            <span>{fac.address}</span>
+                          </p>
                         </div>
                       </div>
 
-                      {/* Content */}
-                      <div className="p-6 space-y-3">
-                        <h3 className="font-space font-bold text-base text-white group-hover:text-[#38BDF8] transition-colors leading-snug">
-                          {fac.name}
-                        </h3>
-                        <p className="text-xs text-slate-400 flex items-start gap-1 leading-relaxed min-h-[32px]">
-                          <MapPin size={13} className="text-slate-500 flex-shrink-0 mt-0.5" />
-                          <span>{fac.address}</span>
-                        </p>
+                      <div className="px-6 pb-6 pt-2 border-t border-slate-900/50 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500 font-mono">Đánh giá: {fac.reviews} lượt</span>
+                        <span className="text-xs font-bold text-[#38BDF8] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                          Đặt sân ngay <ChevronRight size={14} />
+                        </span>
                       </div>
-                    </div>
-
-                    <div className="px-6 pb-6 pt-2 border-t border-slate-900/50 flex items-center justify-between">
-                      <span className="text-[10px] text-slate-500 font-mono">Đánh giá: {fac.reviews} lượt</span>
-                      <span className="text-xs font-bold text-[#38BDF8] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                        Đặt sân ngay <ChevronRight size={14} />
-                      </span>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              // 2. TÌM NHÓM GHÉP GIAO LƯU (MATCHMAKING)
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-900 pb-4">
+                  <h2 className="font-space font-bold text-sm text-white uppercase tracking-wider flex items-center gap-2">
+                    <Flame size={16} className="text-[#A3E635]" /> Các phòng đang tuyển thành viên ghép sân
+                  </h2>
+                  <span className="text-xs text-slate-500 font-space font-mono">Hoạt động thời gian thực</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {matchmakingSlots
+                    .filter(s => s.sport.toLowerCase() === selectedSport.toLowerCase() || (selectedSport === 'badminton' && s.sport === 'Cầu lông'))
+                    .map((slot) => {
+                      const isFull = slot.currentPlayers >= slot.maxPlayers;
+                      return (
+                        <div 
+                          key={slot.id}
+                          className="flex flex-col justify-between border border-slate-900 bg-[#0B132B]/30 p-5 rounded-2xl relative overflow-hidden group hover:border-[#A3E635]/30 transition-all"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start mb-3">
+                              <span className="text-[9px] text-[#A3E635] font-bold font-mono uppercase bg-[#A3E635]/5 border border-[#A3E635]/15 px-2 py-0.5 rounded-md">
+                                {slot.sport}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-mono">{slot.date}</span>
+                            </div>
+
+                            <h3 className="font-space font-bold text-sm text-white leading-snug">{slot.facilityName}</h3>
+                            <p className="text-[11px] text-slate-400 font-mono mt-1 flex items-center gap-1">
+                              <Clock size={11} className="text-slate-500" /> {slot.time} • <strong>{slot.court}</strong>
+                            </p>
+
+                            {/* Host info */}
+                            <div className="my-4 bg-slate-950/40 p-3 rounded-xl border border-slate-900/60 text-xs space-y-1.5 font-sans">
+                              <div className="flex justify-between text-slate-400">
+                                <span>Chủ phòng:</span>
+                                <span className="font-bold text-white">{slot.hostName}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>Yêu cầu trình độ:</span>
+                                <span className="font-bold text-amber-400">{slot.level}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>Thành viên:</span>
+                                <span className="font-bold text-slate-200 truncate max-w-[120px]">
+                                  {slot.joinedPlayers.join(', ')}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Player slot utilization */}
+                            <div className="space-y-1.5 mb-5">
+                              <div className="flex justify-between text-[10px] font-mono">
+                                <span className="text-slate-500 uppercase font-bold">Số lượng vị trí</span>
+                                <span className={isFull ? 'text-rose-400' : 'text-[#A3E635]'}>
+                                  {slot.currentPlayers}/{slot.maxPlayers} người
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-emerald-500 to-[#A3E635] rounded-full transition-all"
+                                  style={{ width: `${(slot.currentPlayers / slot.maxPlayers) * 100}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-900/60 flex items-center justify-between">
+                            <div>
+                              <p className="text-[9px] text-slate-500 font-space uppercase">TẠM TÍNH CHIA ĐỀU</p>
+                              <p className="text-xs font-bold text-[#A3E635] font-mono">₫{slot.pricePerPlayer.toLocaleString()} <span className="text-[10px] text-slate-500 font-normal">/người</span></p>
+                            </div>
+
+                            {isFull ? (
+                              <button 
+                                disabled
+                                className="bg-slate-900 border border-slate-800 text-slate-600 font-bold text-[10px] uppercase px-4 py-2 rounded-xl cursor-not-allowed"
+                              >
+                                Đã đầy nhóm
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => openJoinMatchmaking(slot)}
+                                className="bg-slate-950 border border-slate-850 hover:bg-slate-900 text-[#A3E635] hover:text-white font-bold text-[10px] uppercase px-4 py-2 rounded-xl transition-all active:scale-95 flex items-center gap-1"
+                              >
+                                Tham gia ghép <ChevronRight size={10} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {matchmakingSlots.filter(s => s.sport.toLowerCase() === selectedSport.toLowerCase() || (selectedSport === 'badminton' && s.sport === 'Cầu lông')).length === 0 && (
+                    <div className="col-span-3 text-center py-12 bg-slate-950/20 border border-slate-900 rounded-2xl">
+                      <Users size={32} className="text-slate-700 mx-auto mb-2" />
+                      <p className="text-xs text-slate-500 font-space">Chưa có nhóm nào mở ghép cho bộ môn này. Hãy trở thành người đầu tiên đặt sân và mở ghép!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* My Booking History Section */}
             <div className="space-y-6 pt-6">
               <div className="flex items-center gap-2 border-b border-slate-900 pb-4">
                 <ShoppingBag size={18} className="text-[#A3E635]" />
-                <h2 className="font-space font-bold text-lg text-white uppercase tracking-wider">Lịch sử đặt sân của tôi</h2>
+                <h2 className="font-space font-bold text-sm text-white uppercase tracking-wider">Lịch sử đặt sân của tôi</h2>
               </div>
 
               {myBookings.length === 0 ? (
@@ -297,8 +564,9 @@ export default function CustomerPortal() {
                           <th className="p-4">Mã lịch đặt</th>
                           <th className="p-4">Cơ sở / Sân</th>
                           <th className="p-4">Môn chơi</th>
+                          <th className="p-4">Loại đặt</th>
                           <th className="p-4">Thời gian</th>
-                          <th className="p-4">Chi phí</th>
+                          <th className="p-4">Đã thanh toán</th>
                           <th className="p-4">Trạng thái</th>
                         </tr>
                       </thead>
@@ -314,6 +582,13 @@ export default function CustomerPortal() {
                               <Badge variant="info" className="border-slate-800 text-[10px] uppercase font-bold text-slate-400">
                                 {b.sport}
                               </Badge>
+                            </td>
+                            <td className="p-4">
+                              <span className={`text-[10px] font-bold ${
+                                b.type === 'Ghép sân' ? 'text-[#A3E635]' : b.type === 'Chủ phòng Ghép' ? 'text-teal-400' : 'text-slate-400'
+                              }`}>
+                                {b.type}
+                              </span>
                             </td>
                             <td className="p-4">
                               <p className="text-white font-semibold">{b.date}</p>
@@ -397,7 +672,7 @@ export default function CustomerPortal() {
                         key={d.value}
                         onClick={() => {
                           setSelectedDate(d.value);
-                          setSelectedSlot(null); // Reset slot khi đổi ngày
+                          setSelectedSlot(null);
                         }}
                         className={`py-3 rounded-xl text-xs font-bold font-space border transition-all ${
                           selectedDate === d.value
@@ -504,9 +779,59 @@ export default function CustomerPortal() {
                           <span className="font-bold text-white font-mono">{selectedSlot.time}</span>
                         </div>
                         <div className="border-t border-slate-900 pt-2 flex justify-between items-center">
-                          <span className="font-bold text-white">Tổng tiền:</span>
-                          <span className="text-sm font-bold text-[#A3E635] font-mono">₫{selectedSlot.price.toLocaleString()}</span>
+                          <span className="font-bold text-white">Tổng tiền sân:</span>
+                          <span className="text-sm font-bold text-slate-300 font-mono">₫{selectedSlot.price.toLocaleString()}</span>
                         </div>
+                      </div>
+
+                      {/* Matchmaking check */}
+                      <div className="bg-[#A3E635]/5 border border-[#A3E635]/15 p-4 rounded-xl space-y-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input 
+                            type="checkbox"
+                            checked={enablePublicMatchmaking}
+                            onChange={(e) => setEnablePublicMatchmaking(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-900 bg-slate-950 text-[#A3E635] focus:ring-0 focus:ring-offset-0"
+                          />
+                          <span className="text-xs font-bold text-white font-space uppercase tracking-wider flex items-center gap-1">
+                            Mở ghép sân công khai (Split Bill)
+                          </span>
+                        </label>
+                        
+                        {enablePublicMatchmaking && (
+                          <div className="space-y-3 pt-2 border-t border-slate-900/60 animate-fadeIn text-xs">
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-slate-400">Số người tối đa:</span>
+                              <select 
+                                value={maxPlayersInput}
+                                onChange={(e) => setMaxPlayersInput(parseInt(e.target.value))}
+                                className="bg-slate-950 border border-slate-900 text-white rounded px-2.5 py-1 focus:outline-none"
+                              >
+                                <option value="2">2 người (Đơn)</option>
+                                <option value="4">4 người (Đôi)</option>
+                              </select>
+                            </div>
+
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-slate-400">Yêu cầu trình độ:</span>
+                              <select 
+                                value={levelInput}
+                                onChange={(e) => setLevelInput(e.target.value)}
+                                className="bg-slate-950 border border-slate-900 text-white rounded px-2.5 py-1 focus:outline-none"
+                              >
+                                <option value="Mọi trình độ">Mọi trình độ</option>
+                                <option value="Mới chơi">Mới chơi (Newbie)</option>
+                                <option value="Trung bình">Trung bình</option>
+                                <option value="Khá/Khó">Khá / Khó</option>
+                              </select>
+                            </div>
+
+                            <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-900/60 flex justify-between text-[11px]">
+                              <span className="text-slate-500 font-bold font-space uppercase">TẠM TÍNH BẠN TRẢ (1/N):</span>
+                              <span className="font-bold text-[#A3E635] font-mono">₫{Math.round(selectedSlot.price / maxPlayersInput).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Inputs */}
@@ -540,7 +865,7 @@ export default function CustomerPortal() {
                         </div>
                       </div>
 
-                      <Button type="submit" className="w-full justify-center mt-2 font-space text-xs py-2.5">
+                      <Button type="submit" className="w-full justify-center mt-2 font-space text-xs py-2.5 bg-gradient-to-r from-emerald-500 to-[#A3E635]">
                         TIẾN HÀNH THANH TOÁN <ArrowRight size={14} className="ml-1" />
                       </Button>
                     </form>
@@ -563,7 +888,7 @@ export default function CustomerPortal() {
             <div className="text-center space-y-2">
               <span className="text-[10px] font-bold text-[#A3E635] tracking-widest uppercase font-mono">BƯỚC 2: THANH TOÁN QUÉT MÃ QR ĐỘNG</span>
               <h2 className="font-space font-extrabold text-2xl text-white">XÁC NHẬN THANH TOÁN</h2>
-              <p className="text-xs text-slate-400">Vui lòng quét mã QR hoặc chuyển khoản để hoàn tất đăng ký ca đặt.</p>
+              <p className="text-xs text-slate-400">Hệ thống hỗ trợ tự động chia sẻ hóa đơn (Split Bill) đối soát thời gian thực.</p>
             </div>
 
             {/* QR Bill card */}
@@ -633,13 +958,15 @@ export default function CustomerPortal() {
                         <p className="font-bold text-white mt-0.5">CTY CP CONG NGHE ROVI VIET NAM</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-slate-500 font-space uppercase">Số tiền chuyển</p>
-                        <p className="font-mono font-bold text-[#A3E635] text-sm mt-0.5">₫{selectedSlot?.price.toLocaleString()}</p>
+                        <p className="text-[10px] text-slate-500 font-space uppercase">Số tiền cần chuyển (Split Bill)</p>
+                        <p className="font-mono font-bold text-[#A3E635] text-sm mt-0.5">
+                          ₫{getQRValue().toLocaleString()}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-500 font-space uppercase">Nội dung chuyển khoản</p>
                         <p className="font-mono font-bold text-white bg-slate-950 border border-slate-900 px-3 py-1.5 rounded-lg inline-block mt-1">
-                          ROVI {customerPhone} {selectedCourt.replace(' ', '')}
+                          ROVI {customerPhone} {isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.id : selectedCourt.replace(' ', '')}
                         </p>
                       </div>
                     </div>
@@ -654,10 +981,10 @@ export default function CustomerPortal() {
                       {isLoading ? 'HỆ THỐNG ĐANG ĐỐI SOÁT...' : 'TÔI ĐÃ CHUYỂN KHOẢN'}
                     </Button>
                     <button 
-                      onClick={() => setStep('booking')}
+                      onClick={() => setStep(isMatchmakingBooking ? 'browse' : 'booking')}
                       className="w-full text-center text-[10px] font-semibold text-slate-500 hover:text-white transition-colors"
                     >
-                      Hủy bỏ & Chọn lại giờ chơi
+                      Hủy bỏ & Chọn lại ca chơi
                     </button>
                   </div>
                 </div>
@@ -675,7 +1002,7 @@ export default function CustomerPortal() {
             
             <div className="space-y-2">
               <span className="text-[10px] font-bold text-[#A3E635] tracking-widest uppercase font-mono">ĐẶT SÂN THÀNH CÔNG!</span>
-              <h2 className="font-space font-extrabold text-2xl text-white">LỊCH ĐẶT ĐÃ XÁC NHẬN</h2>
+              <h2 className="font-space font-extrabold text-2xl text-white">LỊCH ĐẶT ĐẠT XÁC NHẬN</h2>
               <p className="text-xs text-slate-400 font-space px-4">
                 Cảm ơn bạn đã sử dụng dịch vụ của ROVI. Lịch đặt của bạn đã được cập nhật trực tiếp xuống cụm sân vận hành.
               </p>
@@ -685,19 +1012,35 @@ export default function CustomerPortal() {
             <Card className="border border-slate-900 bg-[#0B132B]/40 p-5 text-left text-xs space-y-2">
               <div className="flex justify-between border-b border-slate-900 pb-2">
                 <span className="text-slate-500 font-space">Địa điểm:</span>
-                <span className="font-bold text-white text-right">{selectedFacility.name}</span>
+                <span className="font-bold text-white text-right">
+                  {isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.facilityName : selectedFacility.name}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 font-space">Sân thi đấu:</span>
-                <span className="font-bold text-[#38BDF8]">{selectedCourt}</span>
+                <span className="font-bold text-[#38BDF8]">
+                  {isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.court : selectedCourt}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 font-space">Ngày đặt:</span>
-                <span className="font-bold text-white font-mono">{selectedDate}</span>
+                <span className="font-bold text-white font-mono">
+                  {isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.date : selectedDate}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 font-space">Thời gian ca:</span>
-                <span className="font-bold text-white font-mono">{selectedSlot?.time}</span>
+                <span className="font-bold text-white font-mono">
+                  {isMatchmakingBooking && selectedJoinSlot ? selectedJoinSlot.time : selectedSlot?.time}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-space">Đã thanh toán (Split Bill):</span>
+                <span className="font-bold text-[#A3E635] font-mono">
+                  {isMatchmakingBooking && selectedJoinSlot ? `₫${selectedJoinSlot.pricePerPlayer.toLocaleString()}` : (
+                    selectedSlot ? `₫${(enablePublicMatchmaking ? Math.round(selectedSlot.price / maxPlayersInput) : selectedSlot.price).toLocaleString()}` : '-'
+                  )}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 font-space">Người chơi:</span>
@@ -707,7 +1050,12 @@ export default function CustomerPortal() {
 
             <div className="pt-4 flex flex-col gap-2">
               <Button 
-                onClick={() => setStep('browse')}
+                onClick={() => {
+                  setStep('browse');
+                  setIsMatchmakingBooking(false);
+                  setSelectedSlot(null);
+                  setEnablePublicMatchmaking(false);
+                }}
                 className="w-full justify-center font-space text-xs py-2.5"
               >
                 QUAY LẠI TRANG CHỦ ĐẶT SÂN
@@ -715,10 +1063,12 @@ export default function CustomerPortal() {
               <button
                 onClick={() => {
                   setStep('browse');
-                  // Tự động cuộn xuống danh sách lịch sử
+                  setIsMatchmakingBooking(false);
+                  setSelectedSlot(null);
+                  setEnablePublicMatchmaking(false);
                   setTimeout(() => {
                     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                  }, 100);
+                  }, 1500);
                 }}
                 className="text-xs font-semibold text-slate-400 hover:text-white transition-colors"
               >
@@ -744,6 +1094,61 @@ export default function CustomerPortal() {
           </div>
         </div>
       </footer>
+
+      {/* JOIN MATCHMAKING MODAL */}
+      <Modal open={showJoinModal} onClose={() => setShowJoinModal(false)} title="THAM GIA GHÉP SÂN GIAO LƯU" maxWidth="450px">
+        {selectedJoinSlot && (
+          <form onSubmit={handleJoinMatchmakingSubmit} className="space-y-4 font-space">
+            <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 text-xs space-y-2">
+              <div className="flex justify-between"><span className="text-slate-500">Cơ sở:</span><span className="font-bold text-white text-right">{selectedJoinSlot.facilityName}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Sân chơi:</span><span className="font-bold text-[#38BDF8]">{selectedJoinSlot.court}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Thời gian:</span><span className="font-bold text-white font-mono">{selectedJoinSlot.time} ({selectedJoinSlot.date})</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Chủ phòng:</span><span className="font-bold text-white">{selectedJoinSlot.hostName}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Yêu cầu trình độ:</span><span className="font-bold text-amber-400">{selectedJoinSlot.level}</span></div>
+              <div className="border-t border-slate-900 pt-2 flex justify-between items-center">
+                <span className="text-slate-400 font-bold">Số tiền bạn thanh toán (1 phần):</span>
+                <span className="text-sm font-bold text-[#A3E635] font-mono">₫{selectedJoinSlot.pricePerPlayer.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Input
+                label="HỌ VÀ TÊN"
+                placeholder="Nhập họ và tên..."
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                required
+                className="bg-slate-950/40 border-slate-900 text-xs py-2"
+              />
+              <Input
+                label="SỐ ĐIỆN THOẠI"
+                type="tel"
+                placeholder="Nhập số điện thoại..."
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                required
+                className="bg-slate-950/40 border-slate-900 text-xs py-2"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-slate-900">
+              <button 
+                type="button"
+                onClick={() => setShowJoinModal(false)}
+                className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold border border-slate-800 rounded-lg transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                type="submit"
+                className="flex-1 py-2 bg-[#A3E635] hover:bg-lime-400 text-slate-950 text-xs font-bold rounded-lg transition-colors"
+              >
+                Xác nhận tham gia
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

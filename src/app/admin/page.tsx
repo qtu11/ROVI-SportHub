@@ -1,6 +1,8 @@
 "use client";
 
-import React from 'react';
+export const dynamic = 'force-dynamic';
+
+import React, { useState, useEffect } from 'react';
 import { StatCard } from '../../components/shared/StatCard';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -34,6 +36,11 @@ const systemHealth = [
 ];
 
 export default function AdminDashboard() {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const recentTenants = tenants.slice(0, 8);
 
   return (
@@ -77,56 +84,64 @@ export default function AdminDashboard() {
         {/* GMV Trend */}
         <Card className="lg:col-span-7">
           <h3 className="display-card text-rovi-text-primary mb-4">GMV Trend</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={gmvTrendData}>
-              <defs>
-                <linearGradient id="gmvGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0EA5FF" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#0EA5FF" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E2D44" vertical={false} />
-              <XAxis dataKey="day" tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="thisWeek" stroke="#0EA5FF" strokeWidth={2} fill="url(#gmvGrad)" name="Tuần này" animationDuration={800} />
-              <Area type="monotone" dataKey="lastWeek" stroke="#64748B" strokeWidth={1.5} strokeDasharray="4 4" fill="transparent" name="Tuần trước" animationDuration={800} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {isMounted ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={gmvTrendData}>
+                <defs>
+                  <linearGradient id="gmvGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0EA5FF" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#0EA5FF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E2D44" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="thisWeek" stroke="#0EA5FF" strokeWidth={2} fill="url(#gmvGrad)" name="Tuần này" animationDuration={800} />
+                <Area type="monotone" dataKey="lastWeek" stroke="#64748B" strokeWidth={1.5} strokeDasharray="4 4" fill="transparent" name="Tuần trước" animationDuration={800} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[280px] w-full bg-slate-900/20 border border-rovi-border/30 rounded-xl animate-pulse flex items-center justify-center text-xs text-rovi-text-muted">Đang tải biểu đồ...</div>
+          )}
         </Card>
 
         {/* Sport Distribution */}
         <Card className="lg:col-span-5">
           <h3 className="display-card text-rovi-text-primary mb-4">Phân bố bộ môn</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={sportDistributionData}
-                cx="50%"
-                cy="50%"
-                innerRadius={70}
-                outerRadius={100}
-                paddingAngle={3}
-                dataKey="value"
-                animationDuration={800}
-              >
-                {sportDistributionData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} stroke="transparent" />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1A2235', border: '1px solid #1E2D44', borderRadius: 8, color: '#EFF2F7' }}
-              />
-              <Legend
-                verticalAlign="middle"
-                align="right"
-                layout="vertical"
-                iconType="circle"
-                iconSize={8}
-                formatter={(value: string) => <span className="text-xs text-rovi-text-muted ml-1">{value}</span>}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {isMounted ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={sportDistributionData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  dataKey="value"
+                  animationDuration={800}
+                >
+                  {sportDistributionData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} stroke="transparent" />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1A2235', border: '1px solid #1E2D44', borderRadius: 8, color: '#EFF2F7' }}
+                />
+                <Legend
+                  verticalAlign="middle"
+                  align="right"
+                  layout="vertical"
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value: string) => <span className="text-xs text-rovi-text-muted ml-1">{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[280px] w-full bg-slate-900/20 border border-rovi-border/30 rounded-xl animate-pulse flex items-center justify-center text-xs text-rovi-text-muted">Đang tải biểu đồ...</div>
+          )}
         </Card>
       </div>
 
