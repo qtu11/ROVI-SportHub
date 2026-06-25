@@ -1,6 +1,7 @@
 import React from 'react';
 import './globals.css';
 import Providers from './providers';
+import AIChatWidget from '../components/shared/AIChatWidget';
 import { Outfit, Space_Grotesk, Inter } from 'next/font/google';
 
 const outfit = Outfit({
@@ -34,8 +35,12 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${outfit.variable} ${spaceGrotesk.variable} ${inter.variable}`}>
       <body className="font-sans antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <AIChatWidget />
+        </Providers>
       </body>
     </html>
   );
 }
+

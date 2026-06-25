@@ -16,13 +16,19 @@ import { Badge } from '@/components/ui/Badge';
 const facilities = [
   { id: 'f1', name: 'ROVI Pickleball Club Q7', address: 'Đường số 4, Phường Tân Hưng, Quận 7, TP. HCM', rating: 4.9, reviews: 128, image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=400&q=80', sports: ['Pickleball', 'Tennis'] },
   { id: 'f2', name: 'Hệ thống Sân Cầu Lông Bình Thạnh', address: 'Chu Văn An, Phường 12, Quận Bình Thạnh, TP. HCM', rating: 4.7, reviews: 96, image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=400&q=80', sports: ['Cầu lông'] },
-  { id: 'f3', name: 'CLB Tennis Thảo Điền', address: 'Nguyễn Văn Hưởng, Thảo Điền, Quận 2, TP. HCM', rating: 4.8, reviews: 74, image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=400&q=80', sports: ['Tennis'] },
+  { id: 'f3', name: 'CLB Tennis Thảo Điền', address: 'Nguyễn Văn Hưởng, Thảo Điền, Quận 2, TP. HCM', rating: 4.8, reviews: 74, image: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=400&q=80', sports: ['Tennis'] },
+  { id: 'f4', name: 'Sân Bóng Đá Mini Sky Sport Q7', address: 'Hoàng Quốc Việt, Phú Mỹ, Quận 7, TP. HCM', rating: 4.6, reviews: 110, image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&q=80', sports: ['Bóng đá'] },
+  { id: 'f5', name: 'ROVI Arena Đa Năng Phú Nhuận', address: 'Hoàng Minh Giám, Phường 9, Phú Nhuận, TP. HCM', rating: 4.9, reviews: 154, image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=400&q=80', sports: ['Pickleball', 'Cầu lông', 'Bóng rổ'] },
+  { id: 'f6', name: 'Hồ Bơi Vô Cực City Club Quận 1', address: 'Lê Lợi, Bến Nghé, Quận 1, TP. HCM', rating: 4.8, reviews: 88, image: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=400&q=80', sports: ['Bơi lội'] },
 ];
 
 const sports = [
   { id: 'pickleball', name: 'Pickleball', emoji: '🏓', color: '#F97316' },
   { id: 'badminton', name: 'Cầu lông', emoji: '🏸', color: '#EC4899' },
   { id: 'tennis', name: 'Tennis', emoji: '🎾', color: '#EAB308' },
+  { id: 'football', name: 'Bóng đá', emoji: '⚽', color: '#22C55E' },
+  { id: 'basketball', name: 'Bóng rổ', emoji: '🏀', color: '#EF4444' },
+  { id: 'swimming', name: 'Bơi lội', emoji: '🏊', color: '#06B6D4' },
 ];
 
 const timeSlots = [
@@ -78,7 +84,12 @@ export default function CustomerPortal() {
 
   const filteredFacilities = facilities.filter(fac => 
     fac.sports.some(s => {
-      const sportName = selectedSport === 'pickleball' ? 'pickleball' : selectedSport === 'tennis' ? 'tennis' : 'cầu lông';
+      const sportName = 
+        selectedSport === 'pickleball' ? 'pickleball' : 
+        selectedSport === 'tennis' ? 'tennis' : 
+        selectedSport === 'badminton' ? 'cầu lông' :
+        selectedSport === 'football' ? 'bóng đá' :
+        selectedSport === 'basketball' ? 'bóng rổ' : 'bơi lội';
       return s.toLowerCase() === sportName;
     })
   );
@@ -88,7 +99,12 @@ export default function CustomerPortal() {
     setSelectedSlot(null);
     
     // Tìm cụm sân đầu tiên hỗ trợ môn thể thao này
-    const sportName = sportId === 'pickleball' ? 'pickleball' : sportId === 'tennis' ? 'tennis' : 'cầu lông';
+    const sportName = 
+      sportId === 'pickleball' ? 'pickleball' : 
+      sportId === 'tennis' ? 'tennis' : 
+      sportId === 'badminton' ? 'cầu lông' :
+      sportId === 'football' ? 'bóng đá' :
+      sportId === 'basketball' ? 'bóng rổ' : 'bơi lội';
     const firstMatching = facilities.find(f => f.sports.some(s => s.toLowerCase() === sportName));
     if (firstMatching) {
       setSelectedFacility(firstMatching);
@@ -118,7 +134,12 @@ export default function CustomerPortal() {
     const newBooking = {
       id: `RV-${Math.floor(1000 + Math.random() * 9000)}`,
       facilityName: selectedFacility.name,
-      sport: selectedSport === 'pickleball' ? 'Pickleball' : selectedSport === 'tennis' ? 'Tennis' : 'Cầu lông',
+      sport: 
+        selectedSport === 'pickleball' ? 'Pickleball' : 
+        selectedSport === 'tennis' ? 'Tennis' : 
+        selectedSport === 'badminton' ? 'Cầu lông' :
+        selectedSport === 'football' ? 'Bóng đá' :
+        selectedSport === 'basketball' ? 'Bóng rổ' : 'Bơi lội',
       court: selectedCourt,
       date: selectedDate,
       time: selectedSlot?.time || '',
@@ -345,7 +366,13 @@ export default function CustomerPortal() {
                 <div className="bg-slate-950/50 border border-slate-900 rounded-xl p-3 text-center min-w-[100px]">
                   <p className="text-[10px] text-slate-500 font-space uppercase">MÔN THỂ THAO</p>
                   <p className="text-xs font-bold text-white uppercase mt-1">
-                    {selectedSport === 'pickleball' ? '🏓 Pickleball' : selectedSport === 'tennis' ? '🎾 Tennis' : '🏸 Cầu lông'}
+                    {
+                      selectedSport === 'pickleball' ? '🏓 Pickleball' : 
+                      selectedSport === 'tennis' ? '🎾 Tennis' : 
+                      selectedSport === 'badminton' ? '🏸 Cầu lông' :
+                      selectedSport === 'football' ? '⚽ Bóng đá' :
+                      selectedSport === 'basketball' ? '🏀 Bóng rổ' : '🏊 Bơi lội'
+                    }
                   </p>
                 </div>
                 <div className="bg-slate-950/50 border border-slate-900 rounded-xl p-3 text-center min-w-[100px]">
